@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    <title></title>
+</head>
+
+<body>
+    <!-- This top nav is not part of the sample code -->
+    <div class="md:flex flex-col md:flex-row md:min-h-screen w-full max-w-screen-xl mx-auto">
+        <!-- * * * * * * * * * * * * * -->
+        <!-- Start of GoJS sample code -->
+        <div class="p-4 w-full">
+            <script src="https://cdn.jsdelivr.net/npm/gojs@2.1/release/go.js"></script>
+            <script id="code">
+                "use strict";
+                /*
+                *  Copyright (C) 1998-2021 by Northwoods Software Corporation. All Rights Reserved.
+                */
+
+                function DoubleTreeLayout() {
+                    go.Layout.call(this);
+                    this._vertical = false;
+                    this._directionFunction = function (node) { return true; };
+                    this._bottomRightOptions = null;
+                    this._topLeftOptions = null;
+                }
+                go.Diagram.inherit(DoubleTreeLayout, go.Layout);
+
+                /*
+                * When false, the layout should grow towards the left and towards the right;
+                * when true, the layout show grow upwards and downwards.
+                * The default value is false.
+                * @name DoubleTreeLayout#vertical
+                
+                * @return {boolean}
+                */
+                Object.defineProperty(DoubleTreeLayout.prototype, "vertical", {
+                    get: function () { return this._vertical; },
+                    set: function (val) {
+                        if (typeof val !== "boolean") throw new Error("new value for DoubleTreeLayout.vertical must be a boolean value.");
+                        if (this._vertical !== val) {
+                            this._vertical = val;
+                            this.invalidateLayout();
+                        }
+                    }
+                });
+
+                /*
+                * This function is called on each child node of the root node
+                * in order to determine whether the subtree starting from that child node
+                * will grow towards larger coordinates or towards smaller ones.
+                * The value must be a function and must not be null.
+                * It must return true if #isPositiveDirection should return true; otherwise it should return false.
+                * @name DoubleTreeLayout#directionFunction
+                
+                * @return {function}
+                */
+                Object.defineProperty(DoubleTreeLayout.prototype, "directionFunction", {
+                    get: function () { return this._directionFunction; },
+                    set: function (val) {
+                        if (typeof val !== "function") {
+                            throw new Error("new value for DoubleTreeLayout.directionFunction must be a function taking a node data object and returning a boolean.");
+                        }
+                        if (this._directionFunction !== val) {
+                            this._directionFunction = val;
+                            this.invalidateLayout();
+                        }
+                    }
+                });
+
+                /**
+                 * Gets or sets the options to be applied to a {@link TreeLayout}.
+                 * By default this is null -- no properties are set on the TreeLayout
+                 * other than the {@link TreeLayout#angle}, depending on {@link #vertical} and
+                 * the result of calling {@link #directionFunction}.
+                 */
+                Object.defineProperty(DoubleTreeLayout.prototype, "bottomRightOptions", {
+                    get: function () { return this._bottomRightOptions; },
+                    set: function (value) {
+                        if (this._bottomRightOptions !== value) {
+                            this._bottomRightOptions = value;
+                            this.invalidateLayout();
+                        }
+                    }
+                });
+
+                /**
+                 * Gets or sets the options to be applied to a {@link TreeLayout}.
+                 * By default this is null -- no properties are set on the TreeLayout
+                 * other than the {@link TreeLayout#angle}, depending on {@link #vertical} and
+                 * the result of calling {@link #directionFunction}.
+                 */
+                Object.defineProperty(DoubleTreeLayout.prototype, "topLeftOptions", {
+                    get: function () { return this._topLeftOptions; },
+                    set: function (value) {
+                        if (this._topLeftOptions !== value) {
+                            this._topLeftOptions = value;
+                            this.invalidateLayout();
+                        }
+                    }
+                });
+
+                /**
+              * @ignore
+              * Copies properties to a cloned Layout.
+              * @this {DoubleTreeLayout}
+              * @param {Layout} copy
+              */
+                DoubleTreeLayout.prototype.cloneProtected = function (copy) {
+                    go.Layout.prototype.cloneProtected.call(this, copy);
+                    copy._vertical = this._vertical;
+                    copy._directionFunction = this._directionFunction;
+                    copy._bottomRightOptions = this._bottomRightOptions;
+                    copy._topLeftOptions = this._topLeftOptions;
+                };
+
+                /**
+                 * Perform two {@link TreeLayout}s by splitting the collection of Parts
+                 * into two separate subsets but sharing only a single root Node.
+                 * @param coll
+                 */
+                DoubleTreeLayout.prototype.doLayout = function (coll) {
+                    coll = this.collectParts(coll);
+                    if (coll.count === 0) return;
+                    var diagram = this.diagram;
+                    if (diagram !== null) diagram.startTransaction("Double Tree Layout");
+
+                    // split the nodes and links into two Sets, depending on direction
+                    var leftParts = new go.Set();
+                    var rightParts = new go.Set();
+                    this.separatePartsForLayout(coll, leftParts, rightParts);
+                    // but the ROOT node will be in both collections
+
+                    // create and perform two TreeLayouts, one in each direction,
+                    // without moving the ROOT node, on the different subsets of nodes and links
+                    var layout1 = this.createTreeLayout(false);
+                    layout1.angle = this.vertical ? 270 : 180;
+                    layout1.arrangement = go.TreeLayout.ArrangementFixedRoots;
+
+                    var layout2 = this.createTreeLayout(true);
+                    layout2.angle = this.vertical ? 90 : 0;
+                    layout2.arrangement = go.TreeLayout.ArrangementFixedRoots;
+
+                    layout1.doLayout(leftParts);
+                    layout2.doLayout(rightParts);
+
+                    if (diagram !== null) diagram.commitTransaction("Double Tree Layout");
+                }
+
+                /**
+                 * This just returns an instance of {@link TreeLayout}.
+                 * The caller will set the {@link TreeLayout#angle}.
+                 * @param {boolean} positive true for growth downward or rightward
+                 * @return {TreeLayout}
+                 */
+                DoubleTreeLayout.prototype.createTreeLayout = function (positive) {
+                    var lay = new go.TreeLayout();
+                    var opts = this.topLeftOptions;
+                    if (positive) opts = this.bottomRightOptions;
+                    if (opts) for (var p in opts) { lay[p] = opts[p]; }
+                    return lay;
+                }
+
+                /**
+                 * This is called by #doLayout to split the collection of Nodes and Links into two Sets,
+                 * one for the subtrees growing towards the left or upwards, and one for the subtrees
+                 * growing towards the right or downwards.
+                 */
+                DoubleTreeLayout.prototype.separatePartsForLayout = function (coll, leftParts, rightParts) {
+                    var root = null;  // the one root
+                    var roots = new go.Set();  // in case there are multiple roots
+                    coll.each(function (node) {
+                        if (node instanceof go.Node && node.findTreeParentNode() === null) roots.add(node);
+                    });
+                    if (roots.count === 0) {  // just choose the first node as the root
+                        var it = coll.iterator;
+                        while (it.next()) {
+                            if (it.value instanceof go.Node) {
+                                root = it.value;
+                                break;
+                            }
+                        }
+                    } else if (roots.count === 1) {  // normal case: just one root node
+                        root = roots.first();
+                    } else {  // multiple root nodes -- create a dummy node to be the one real root
+                        root = new go.Node();  // the new root node
+                        root.location = new go.Point(0, 0);
+                        var forwards = (this.diagram ? this.diagram.isTreePathToChildren : true);
+                        // now make dummy links from the one root node to each node
+                        roots.each(function (child) {
+                            var link = new go.Link();
+                            if (forwards) {
+                                link.fromNode = root;
+                                link.toNode = child;
+                            } else {
+                                link.fromNode = child;
+                                link.toNode = root;
+                            }
+                        });
+                    }
+
+                    // the ROOT node is shared by both subtrees
+                    leftParts.add(root);
+                    rightParts.add(root);
+                    var lay = this;
+                    // look at all of the immediate children of the ROOT node
+                    root.findTreeChildrenNodes().each(function (child) {
+                        // in what direction is this child growing?
+                        var bottomright = lay.isPositiveDirection(child);
+                        var coll = bottomright ? rightParts : leftParts;
+                        // add the whole subtree starting with this child node
+                        coll.addAll(child.findTreeParts());
+                        // and also add the link from the ROOT node to this child node
+                        coll.add(child.findTreeParentLink());
+                    });
+                }
+
+                /**
+                 * This predicate is called on each child node of the root node,
+                 * and only on immediate children of the root.
+                 * It should return true if this child node is the root of a subtree that should grow
+                 * rightwards or downwards, or false otherwise.
+                 * @param {Node} child
+                 * @returns {boolean} true if grows towards right or towards bottom; false otherwise
+                 */
+                DoubleTreeLayout.prototype.isPositiveDirection = function (child) {
+                    var f = this.directionFunction;
+                    if (!f) throw new Error("No DoubleTreeLayout.directionFunction supplied on the layout");
+                    return f(child);
+                }
+                async function fetchData1() {
+                    let result = []
+                    const response = await fetch('https://lopa-web.azurewebsites.net/event')
+                    if (response.status === 200)
+                        result = response.json()
+                    return result
+                }
+                async function fetchData2() {
+                    let result = []
+                    const response = await fetch('https://lopa-web.azurewebsites.net/cause')
+                    if (response.status === 200)
+                        result = response.json()
+                    return result
+                }
+                async function fetchData3() {
+                    let result = []
+                    const response = await fetch('https://lopa-web.azurewebsites.net/consequence')
+                    if (response.status === 200)
+                        result = response.json()
+                    return result
+                }
+                async function fetchData4() {
+                    let result = []
+                    const response = await fetch('https://lopa-web.azurewebsites.net/cause_barrier')
+                    if (response.status === 200)
+                        result = response.json()
+                    return result
+                }
+                async function fetchData5() {
+                    let result = []
+                    const response = await fetch('https://lopa-web.azurewebsites.net/consequence_barrier')
+                    if (response.status === 200)
+                        result = response.json()
+                    return result
+                }
+                async function init() {
+                    var $ = go.GraphObject.make;  // for conciseness in defining templates in this function
+
+                    var myDiagram =
+                        $(go.Diagram, "myDiagramDiv",
+                            {
+                                layout: $(DoubleTreeLayout,
+                                    {
+                                        //vertical: true,  // default directions are horizontal
+                                        // choose whether this subtree is growing towards the right or towards the left:
+                                        directionFunction: function (n) { return n.data && n.data.dir !== "left"; }
+                                        // controlling the parameters of each TreeLayout:
+                                        //bottomRightOptions: { nodeSpacing: 0, layerSpacing: 20 },
+                                        //topLeftOptions: { alignment: go.TreeLayout.AlignmentStart },
+                                    })
+                            });
+
+                    // define all of the gradient brushes
+                    var eventColor = $(go.Brush, "Linear", { 0: "#ff5722", 1: "#ff5722" });
+                    var graygrad = $(go.Brush, "Linear", { 0: "#a9a9a9", 1: "#a9a9a9" });
+                    var bluegrad = $(go.Brush, "Linear", { 0: "#0000ff", 1: "#0000ff" });
+                    var redgrad = $(go.Brush, "Linear", { 0: "#ff0000", 1: "#ff0000" });
+
+                    myDiagram.nodeTemplate =
+                        $(go.Node, "Auto",
+                            { isShadowed: false },
+                            // define the node's outer shape
+                            $(go.Shape, "RoundedRectangle",
+                                { stroke: "#D8D8D8", width: 140, height: 160 },  // default fill is gray
+                                new go.Binding("fill", "color")),
+                            // define the node's text
+                            $(go.TextBlock,
+                                {
+                                    margin: 1, font: "bold 11px Helvetica, bold Arial, sans-serif", stroke: "#fff",
+                                    wrap: go.TextBlock.WrapDesiredSize,
+                                    width: 120
+                                },
+
+                                new go.Binding("text", "text").makeTwoWay())
+                        );
+
+                    myDiagram.linkTemplate =
+                        $(go.Link,  // the whole link panel
+                            { selectable: false },
+                            $(go.Shape));  // the link shape
+
+
+                    const event = await fetchData1()
+                    const cause = await fetchData2()
+                    const consequence = await fetchData3()
+                    const causeBarrier = await fetchData4()
+                    const consequenceBarrier = await fetchData5()
+                    const lopa = {
+                        event: event[0],
+                        causes: cause.map((val, index) => {
+                            const cf = causeBarrier.reduce((previousValue, currentValue) => previousValue * +currentValue.pfd, 1) * val.initial_frequency
+                            return {
+                                ...val,
+                                cf,
+                                causeBarriers: causeBarrier.filter((filter, i) => +filter.cause_id === +val.cause_id)
+                            }
+                        }),
+                        consequences: consequence.map((val, index) => {
+                            return {
+                                ...val,
+                                consequenceBarriers: consequenceBarrier.filter(filter => +filter.consequence_id === +val.consequence_id)
+                            }
+                        })
+                    }
+                    lopa.event["cf"] = lopa.causes.reduce((previousValue, currentValue) => previousValue + +currentValue.cf, 0)
+                    lopa.consequences = lopa.consequences.map((val, ind) => {
+                        const cf = val.consequenceBarriers.reduce((previousValue, currentValue) => previousValue * +currentValue.pfd, 1) * lopa.event["cf"]
+                        return {
+                            ...val,
+                            cf
+                        }
+                    })
+                    let cab = []
+                    lopa.causes.forEach((x, i) => {
+                        const b = x.causeBarriers.map((y, j, arr) => {
+                            if (j === 0)
+                                return {
+                                    key: `causeBarrier${y.cause_barrier_id}`,
+                                    text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                    parent: `event${lopa.event.event_id}`,
+                                    dir: 'left',
+                                    color: graygrad
+                                }
+                            else if (arr[j - 1] !== undefined)
+                                return {
+                                    key: `causeBarrier${y.cause_barrier_id}`,
+                                    text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                    parent: `causeBarrier${arr[j - 1].cause_barrier_id}`,
+                                    color: graygrad
+                                }
+                        }).filter((y) => y !== undefined)
+                        cab = [...cab, ...b]
+                    })
+                    let cob = []
+                    lopa.consequences.forEach((x, i) => {
+                        const b = x.consequenceBarriers.map((y, j, arr) => {
+                            if (j === 0)
+                                return {
+                                    key: `consequenceBarrier${y.consequence_barrier_id}`,
+                                    text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                    parent: `event${lopa.event.event_id}`,
+                                    dir: 'right',
+                                    color: graygrad
+                                }
+                            else if (arr[j - 1] !== undefined)
+                                return {
+                                    key: `consequenceBarrier${y.consequence_barrier_id}`,
+                                    text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                    parent: `consequenceBarrier${arr[j - 1].consequence_barrier_id}`,
+                                    color: graygrad
+                                }
+                        }).filter((y) => y !== undefined)
+                        cob = [...cob, ...b]
+
+                    })
+                    const ca = lopa.causes.map(x => {
+                        if (x.causeBarriers[x.causeBarriers.length - 1])
+                            return {
+                                key: `cause${x.cause_id}`,
+                                text: `cause: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
+                                parent: x.causeBarriers[x.causeBarriers.length - 1] ? `causeBarrier${x.causeBarriers[x.causeBarriers.length - 1].cause_barrier_id}` : `event${lopa.event.event_id}`,
+                                color: bluegrad
+                            }
+
+                        return {
+                            key: `cause${x.cause_id}`,
+                            text: `cause: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
+                            parent: `event${lopa.event.event_id}`,
+                            dir: "left",
+                            color: bluegrad
+                        }
+                    });
+                    const co = lopa.consequences.map(x => {
+                        if (x.consequenceBarriers[x.consequenceBarriers.length - 1])
+                            return {
+                                key: `consequence${x.consequence_id}`,
+                                text: `consequence: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
+                                parent: `consequenceBarrier${x.consequenceBarriers[x.consequenceBarriers.length - 1].consequence_barrier_id}`,
+                                color: redgrad
+                            }
+
+                        return {
+                            key: `consequence: ${x.consequence_id}`,
+                            text: `consequence: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
+                            parent: `event${lopa.event.event_id}`,
+                            dir: "right",
+                            color: redgrad
+                        }
+                    });
+                    console.log([{ key: `event${lopa.event.event_id}`, text: `event: ${lopa.event.description}` }, ...cab, ...cob, ...ca, ...co])
+                    // create the model for the double tree; could be eiher TreeModel or GraphLinksModel
+                    // myDiagram.model = new go.TreeModel([
+
+                    //     { key: "Event", color: lavgrad },
+                    //     { key: "causeBarrier1", parent: "Event", dir: "left", color: bluegrad },
+                    //     { key: "causeBarrier3", parent: "Event", dir: "left", color: bluegrad },
+                    //     { key: "causeBarrier5", parent: "Event", dir: "left", color: bluegrad },
+                    //     { key: "causeBarrier2", parent: "causeBarrier1" },
+                    //     { key: "causeBarrier4", parent: "causeBarrier3" },
+                    //     { key: "causeBarrier6", parent: "causeBarrier5" },
+                    //     { key: "Cause1", parent: "causeBarrier2" },
+                    //     { key: "Cause2", parent: "causeBarrier4" },
+                    //     { key: "Cause3", parent: "causeBarrier6" },
+                    //     { key: "ConsequenceBarrier1", parent: "Event", dir: "right", color: yellowgrad },
+                    //     { key: "ConsequenceBarrier3", parent: "Event", dir: "right", color: yellowgrad },
+                    //     { key: "ConsequenceBarrier5", parent: "Event", dir: "right", color: yellowgrad },
+                    //     { key: "ConsequenceBarrier2", parent: "ConsequenceBarrier1" },
+                    //     { key: "ConsequenceBarrier4", parent: "ConsequenceBarrier3" },
+                    //     { key: "ConsequenceBarrier6", parent: "ConsequenceBarrier5" },
+                    //     { key: "Consequence1", parent: "ConsequenceBarrier2" },
+                    //     { key: "Consequence2", parent: "ConsequenceBarrier4" },
+                    //     { key: "Consequence3", parent: "ConsequenceBarrier6" },
+                    // ]);
+
+                    myDiagram.model = new go.TreeModel([
+                        { key: `event${lopa.event.event_id}`, text: `event: ${lopa.event.description}, current_frequency: ${lopa.event.cf}`, color: eventColor },
+                        ...cob,
+                        ...cab,
+                        ...co,
+                        ...ca
+                    ])
+                    myDiagram.makeImage({
+                        scale: 1
+                    });
+                }
+                window.addEventListener('DOMContentLoaded', async () => {
+                    init()
+                    // console.log(lopa)
+
+                });
+                var div = myDiagram.div;
+                div.style.height = '900px';
+
+            </script>
+
+            <div id="sample">
+                <div id="myDiagramDiv"
+                    style="background-color: white; border: solid 1px black; width: 100%; height: 500px">
+                </div>
+            </div>
+        </div>
+        <!-- * * * * * * * * * * * * * -->
+        <!--  End of GoJS sample code  -->
+    </div>
+</body>
+
+</html>
