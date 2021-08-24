@@ -5,7 +5,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <title>LOPA/Bow tie </title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
 </head>
 
 <body>
@@ -14,14 +15,12 @@
         <!-- * * * * * * * * * * * * * -->
         <!-- Start of GoJS sample code -->
         <div class="p-4 w-full">
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj" crossorigin="anonymous"></script>
             <script src="https://cdn.jsdelivr.net/npm/gojs@2.1/release/go.js"></script>
             <script id="code">
                 "use strict";
                 /*
                 *  Copyright (C) 1998-2021 by Northwoods Software Corporation. All Rights Reserved.
                 */
-
                 function DoubleTreeLayout() {
                     go.Layout.call(this);
                     this._vertical = false;
@@ -323,174 +322,186 @@
                         var causeBarrier = [];
                         var consequenceBarrier = [];
                         Promise.all(
-                        await cause.map(async function(value) {
-                            const causeBarriers = await fetchData4(value.cause_id)
-                            causeBarrier = [...causeBarrier, ...causeBarriers]
-                        }),
-                        await consequence.map(async function (value) {
-                            const consequenceBarriers = await fetchData5(value.consequence_id)
-                            consequenceBarrier = [...consequenceBarrier, ...consequenceBarriers]
-                        })
-                        ).then(() =>{
+                            await cause.map(async function (value) {
+                                const causeBarriers = await fetchData4(value.cause_id)
+                                causeBarrier = [...causeBarrier, ...causeBarriers]
+                            }),
+                            await consequence.map(async function (value) {
+                                const consequenceBarriers = await fetchData5(value.consequence_id)
+                                consequenceBarrier = [...consequenceBarrier, ...consequenceBarriers]
+                            })
+                        ).then(() => {
                             console.log({ event, cause, consequence, causeBarrier, consequenceBarrier })
 
-                        // setTimeout(()=> {
-                            
-                        // Promise.all(causeBarrier, consequenceBarrier).then(th => {
-                        
-                        const lopa = {
-                            event: event,
-                            causes: cause.map((val, index) => {
-                                if (causeBarrier.length > 0){
-                                    const cf = causeBarrier.reduce((previousValue, currentValue) => previousValue * +currentValue.pfd, 1) * val.initial_frequency
+                            // setTimeout(()=> {
+
+                            // Promise.all(causeBarrier, consequenceBarrier).then(th => {
+
+                            const lopa = {
+                                event: event,
+                                causes: cause.map((val, index) => {
+                                    if (causeBarrier.length > 0) {
+                                        const cf = causeBarrier.reduce((previousValue, currentValue) => previousValue * +currentValue.pfd, 1) * val.initial_frequency
+                                        return {
+                                            ...val,
+                                            cf,
+                                            causeBarriers: causeBarrier.filter((filter, i) => +filter.cause_id === +val.cause_id)
+                                        }
+                                    } else {
+                                        return {
+                                            ...val,
+                                            cf: val.initial_frequency,
+                                            causeBarriers: causeBarrier.filter((filter, i) => +filter.cause_id === +val.cause_id)
+                                        }
+                                    }
+                                }),
+                                consequences: consequence.map((val, index) => {
                                     return {
                                         ...val,
-                                        cf,
-                                        causeBarriers: causeBarrier.filter((filter, i) => +filter.cause_id === +val.cause_id)
+                                        consequenceBarriers: consequenceBarrier.filter(filter => +filter.consequence_id === +val.consequence_id)
                                     }
-                                } else {return {
-                                        ...val,
-                                        cf: val.initial_frequency,
-                                        causeBarriers: causeBarrier.filter((filter, i) => +filter.cause_id === +val.cause_id)
-                                    }
-                                }
-                            }),
-                            consequences: consequence.map((val, index) => {
+                                })
+                            }
+                            console.log({ lopa })
+                            lopa.event["cf"] = lopa.causes.reduce((previousValue, currentValue) => previousValue + +currentValue.cf, 0)
+                            lopa.consequences = lopa.consequences.map((val, ind) => {
+                                const cf = val.consequenceBarriers.reduce((previousValue, currentValue) => previousValue * +currentValue.pfd, 1) * lopa.event["cf"]
                                 return {
                                     ...val,
-                                    consequenceBarriers: consequenceBarrier.filter(filter => +filter.consequence_id === +val.consequence_id)
+                                    cf
                                 }
                             })
-                        }
-                        console.log({lopa})
-                        lopa.event["cf"] = lopa.causes.reduce((previousValue, currentValue) => previousValue + +currentValue.cf, 0)
-                        lopa.consequences = lopa.consequences.map((val, ind) => {
-                            const cf = val.consequenceBarriers.reduce((previousValue, currentValue) => previousValue * +currentValue.pfd, 1) * lopa.event["cf"]
-                            return {
-                                ...val,
-                                cf
-                            }
-                        })
-                        let cab = []
-                        lopa.causes.forEach((x, i) => {
-                            const b = x.causeBarriers.map((y, j, arr) => {
-                                if (j === 0)
-                                    return {
-                                        key: `causeBarrier${y.cause_barrier_id}`,
-                                        text: `barrier: ${y.description}, pfd: ${y.pfd}`,
-                                        parent: `event${lopa.event.event_id}`,
-                                        dir: 'left',
-                                        color: graygrad
-                                    }
-                                else if (arr[j - 1] !== undefined)
-                                    return {
-                                        key: `causeBarrier${y.cause_barrier_id}`,
-                                        text: `barrier: ${y.description}, pfd: ${y.pfd}`,
-                                        parent: `causeBarrier${arr[j - 1].cause_barrier_id}`,
-                                        color: graygrad
-                                    }
-                            }).filter((y) => y !== undefined)
-                            cab = [...cab, ...b]
-                        })
-                        let cob = []
-                        lopa.consequences.forEach((x, i) => {
-                            const b = x.consequenceBarriers.map((y, j, arr) => {
-                                if (j === 0)
-                                    return {
-                                        key: `consequenceBarrier${y.consequence_barrier_id}`,
-                                        text: `barrier: ${y.description}, pfd: ${y.pfd}`,
-                                        parent: `event${lopa.event.event_id}`,
-                                        dir: 'right',
-                                        color: graygrad
-                                    }
-                                else if (arr[j - 1] !== undefined)
-                                    return {
-                                        key: `consequenceBarrier${y.consequence_barrier_id}`,
-                                        text: `barrier: ${y.description}, pfd: ${y.pfd}`,
-                                        parent: `consequenceBarrier${arr[j - 1].consequence_barrier_id}`,
-                                        color: graygrad
-                                    }
-                            }).filter((y) => y !== undefined)
-                            cob = [...cob, ...b]
+                            let cab = []
+                            lopa.causes.forEach((x, i) => {
+                                const b = x.causeBarriers.map((y, j, arr) => {
+                                    if (j === 0)
+                                        return {
+                                            key: `causeBarrier${y.cause_barrier_id}`,
+                                            text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                            parent: `event${lopa.event.event_id}`,
+                                            dir: 'left',
+                                            color: graygrad
+                                        }
+                                    else if (arr[j - 1] !== undefined)
+                                        return {
+                                            key: `causeBarrier${y.cause_barrier_id}`,
+                                            text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                            parent: `causeBarrier${arr[j - 1].cause_barrier_id}`,
+                                            color: graygrad
+                                        }
+                                }).filter((y) => y !== undefined)
+                                cab = [...cab, ...b]
+                            })
+                            let cob = []
+                            lopa.consequences.forEach((x, i) => {
+                                const b = x.consequenceBarriers.map((y, j, arr) => {
+                                    if (j === 0)
+                                        return {
+                                            key: `consequenceBarrier${y.consequence_barrier_id}`,
+                                            text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                            parent: `event${lopa.event.event_id}`,
+                                            dir: 'right',
+                                            color: graygrad
+                                        }
+                                    else if (arr[j - 1] !== undefined)
+                                        return {
+                                            key: `consequenceBarrier${y.consequence_barrier_id}`,
+                                            text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                            parent: `consequenceBarrier${arr[j - 1].consequence_barrier_id}`,
+                                            color: graygrad
+                                        }
+                                }).filter((y) => y !== undefined)
+                                cob = [...cob, ...b]
 
-                        })
-                        const ca = lopa.causes.map(x => {
-                            if (x.causeBarriers[x.causeBarriers.length - 1])
+                            })
+                            const ca = lopa.causes.map(x => {
+                                if (x.causeBarriers[x.causeBarriers.length - 1])
+                                    return {
+                                        key: `cause${x.cause_id}`,
+                                        text: `cause: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
+                                        parent: x.causeBarriers[x.causeBarriers.length - 1] ? `causeBarrier${x.causeBarriers[x.causeBarriers.length - 1].cause_barrier_id}` : `event${lopa.event.event_id}`,
+                                        color: bluegrad
+                                    }
+
                                 return {
                                     key: `cause${x.cause_id}`,
                                     text: `cause: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
-                                    parent: x.causeBarriers[x.causeBarriers.length - 1] ? `causeBarrier${x.causeBarriers[x.causeBarriers.length - 1].cause_barrier_id}` : `event${lopa.event.event_id}`,
+                                    parent: `event${lopa.event.event_id}`,
+                                    dir: "left",
                                     color: bluegrad
                                 }
+                            });
+                            const co = lopa.consequences.map(x => {
+                                if (x.consequenceBarriers[x.consequenceBarriers.length - 1])
+                                    return {
+                                        key: `consequence${x.consequence_id}`,
+                                        text: `consequence: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
+                                        parent: `consequenceBarrier${x.consequenceBarriers[x.consequenceBarriers.length - 1].consequence_barrier_id}`,
+                                        color: redgrad
+                                    }
 
-                            return {
-                                key: `cause${x.cause_id}`,
-                                text: `cause: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
-                                parent: `event${lopa.event.event_id}`,
-                                dir: "left",
-                                color: bluegrad
-                            }
-                        });
-                        const co = lopa.consequences.map(x => {
-                            if (x.consequenceBarriers[x.consequenceBarriers.length - 1])
                                 return {
-                                    key: `consequence${x.consequence_id}`,
+                                    key: `consequence: ${x.consequence_id}`,
                                     text: `consequence: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
-                                    parent: `consequenceBarrier${x.consequenceBarriers[x.consequenceBarriers.length - 1].consequence_barrier_id}`,
+                                    parent: `event${lopa.event.event_id}`,
+                                    dir: "right",
                                     color: redgrad
                                 }
+                            });
+                            console.log([{ key: `event${lopa.event.event_id}`, text: `event: ${lopa.event.description}` }, ...cab, ...cob, ...ca, ...co])
+                            // create the model for the double tree; could be eiher TreeModel or GraphLinksModel
+                            // myDiagram.model = new go.TreeModel([
 
-                            return {
-                                key: `consequence: ${x.consequence_id}`,
-                                text: `consequence: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
-                                parent: `event${lopa.event.event_id}`,
-                                dir: "right",
-                                color: redgrad
-                            }
-                        });
-                        console.log([{ key: `event${lopa.event.event_id}`, text: `event: ${lopa.event.description}` }, ...cab, ...cob, ...ca, ...co])
-                        // create the model for the double tree; could be eiher TreeModel or GraphLinksModel
-                        // myDiagram.model = new go.TreeModel([
+                            //     { key: "Event", color: lavgrad },
+                            //     { key: "causeBarrier1", parent: "Event", dir: "left", color: bluegrad },
+                            //     { key: "causeBarrier3", parent: "Event", dir: "left", color: bluegrad },
+                            //     { key: "causeBarrier5", parent: "Event", dir: "left", color: bluegrad },
+                            //     { key: "causeBarrier2", parent: "causeBarrier1" },
+                            //     { key: "causeBarrier4", parent: "causeBarrier3" },
+                            //     { key: "causeBarrier6", parent: "causeBarrier5" },
+                            //     { key: "Cause1", parent: "causeBarrier2" },
+                            //     { key: "Cause2", parent: "causeBarrier4" },
+                            //     { key: "Cause3", parent: "causeBarrier6" },
+                            //     { key: "ConsequenceBarrier1", parent: "Event", dir: "right", color: yellowgrad },
+                            //     { key: "ConsequenceBarrier3", parent: "Event", dir: "right", color: yellowgrad },
+                            //     { key: "ConsequenceBarrier5", parent: "Event", dir: "right", color: yellowgrad },
+                            //     { key: "ConsequenceBarrier2", parent: "ConsequenceBarrier1" },
+                            //     { key: "ConsequenceBarrier4", parent: "ConsequenceBarrier3" },
+                            //     { key: "ConsequenceBarrier6", parent: "ConsequenceBarrier5" },
+                            //     { key: "Consequence1", parent: "ConsequenceBarrier2" },
+                            //     { key: "Consequence2", parent: "ConsequenceBarrier4" },
+                            //     { key: "Consequence3", parent: "ConsequenceBarrier6" },
+                            // ]);
 
-                        //     { key: "Event", color: lavgrad },
-                        //     { key: "causeBarrier1", parent: "Event", dir: "left", color: bluegrad },
-                        //     { key: "causeBarrier3", parent: "Event", dir: "left", color: bluegrad },
-                        //     { key: "causeBarrier5", parent: "Event", dir: "left", color: bluegrad },
-                        //     { key: "causeBarrier2", parent: "causeBarrier1" },
-                        //     { key: "causeBarrier4", parent: "causeBarrier3" },
-                        //     { key: "causeBarrier6", parent: "causeBarrier5" },
-                        //     { key: "Cause1", parent: "causeBarrier2" },
-                        //     { key: "Cause2", parent: "causeBarrier4" },
-                        //     { key: "Cause3", parent: "causeBarrier6" },
-                        //     { key: "ConsequenceBarrier1", parent: "Event", dir: "right", color: yellowgrad },
-                        //     { key: "ConsequenceBarrier3", parent: "Event", dir: "right", color: yellowgrad },
-                        //     { key: "ConsequenceBarrier5", parent: "Event", dir: "right", color: yellowgrad },
-                        //     { key: "ConsequenceBarrier2", parent: "ConsequenceBarrier1" },
-                        //     { key: "ConsequenceBarrier4", parent: "ConsequenceBarrier3" },
-                        //     { key: "ConsequenceBarrier6", parent: "ConsequenceBarrier5" },
-                        //     { key: "Consequence1", parent: "ConsequenceBarrier2" },
-                        //     { key: "Consequence2", parent: "ConsequenceBarrier4" },
-                        //     { key: "Consequence3", parent: "ConsequenceBarrier6" },
-                        // ]);
+                            myDiagram.model = new go.TreeModel([
+                                { key: `event${lopa.event.event_id}`, text: `event: ${lopa.event.description}, current_frequency: ${lopa.event.cf}`, color: eventColor },
+                                ...cob,
+                                ...cab,
+                                ...co,
+                                ...ca
+                            ])
+                            myDiagram.makeImage({
+                                scale: 1
+                            });
+                            var div = myDiagram.div;
+                            div.style.height = '900px';
+                            // })
+                            // }, 5000)
 
-                        myDiagram.model = new go.TreeModel([
-                            { key: `event${lopa.event.event_id}`, text: `event: ${lopa.event.description}, current_frequency: ${lopa.event.cf}`, color: eventColor },
-                            ...cob,
-                            ...cab,
-                            ...co,
-                            ...ca
-                        ])
-                        myDiagram.makeImage({
-                            scale: 1
-                        });
-                        var div = myDiagram.div;
-                        div.style.height = '900px';
-                        // })
-                        // }, 5000)
-
-                    })
+                        })
                     }
                 }
+                window.addEventListener('load', () => {
+
+                    const loginSession = window.sessionStorage.getItem("auth")
+                    const params = new URLSearchParams(window.location.search)
+                    console.log({ loginSession })
+                    if (loginSession === null && params.has("eventId")) {
+                        const eventId = params.get("eventId")
+                        window.sessionStorage.setItem("eventId", eventId)
+                        window.location.href = "login.html"
+                    }
+                })
                 window.addEventListener('DOMContentLoaded', async () => {
                     init()
                     // console.log(lopa)
