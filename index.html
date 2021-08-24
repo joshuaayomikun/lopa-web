@@ -344,14 +344,14 @@
                         var consequenceBarrier = [];
                         const dv = document.querySelector("#description")
                         dv.textContent = "Bow Tie Diagram for " + event.description
-                        Promise.all(
-                            await cause.map(async function (value) {
-                                const causeBarriers = await fetchData4(value.cause_id)
-                                causeBarrier = [...causeBarrier, ...causeBarriers]
-                            }),
+                        Promise.allSettled(
                             await consequence.map(async function (value) {
                                 const consequenceBarriers = await fetchData5(value.consequence_id)
                                 consequenceBarrier = [...consequenceBarrier, ...consequenceBarriers]
+                            }),
+                            await cause.map(async function (value) {
+                                const causeBarriers = await fetchData4(value.cause_id)
+                                causeBarrier = [...causeBarrier, ...causeBarriers]
                             })
                         ).then(() => {
                             console.log({ event, cause, consequence, causeBarrier, consequenceBarrier })
