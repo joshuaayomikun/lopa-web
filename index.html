@@ -392,7 +392,7 @@
                                     if (j === 0)
                                         return {
                                             key: `causeBarrier${y.cause_barrier_id}`,
-                                            text: `barrier: ${y.description} \n \n pfd: ${y.pfd}`,
+                                            text: `Barrier: ${y.description} \n \n PFD: ${y.pfd}`,
                                             parent: `event${lopa.event.event_id}`,
                                             dir: 'left',
                                             color: graygrad
@@ -400,7 +400,7 @@
                                     else if (arr[j - 1] !== undefined)
                                         return {
                                             key: `causeBarrier${y.cause_barrier_id}`,
-                                            text: `barrier: ${y.description} \n \n  pfd: ${y.pfd}`,
+                                            text: `Barrier: ${y.description} \n \n  PFD: ${y.pfd}`,
                                             parent: `causeBarrier${arr[j - 1].cause_barrier_id}`,
                                             color: graygrad
                                         }
@@ -413,7 +413,7 @@
                                     if (j === 0)
                                         return {
                                             key: `consequenceBarrier${y.consequence_barrier_id}`,
-                                            text: `barrier: ${y.description} \n \n  pfd: ${y.pfd}`,
+                                            text: `Barrier: ${y.description} \n \n  PFD: ${y.pfd}`,
                                             parent: `event${lopa.event.event_id}`,
                                             dir: 'right',
                                             color: graygrad
@@ -421,7 +421,7 @@
                                     else if (arr[j - 1] !== undefined)
                                         return {
                                             key: `consequenceBarrier${y.consequence_barrier_id}`,
-                                            text: `barrier: ${y.description} \n \n  pfd: ${y.pfd}`,
+                                            text: `Barrier: ${y.description} \n \n  PFD: ${y.pfd}`,
                                             parent: `consequenceBarrier${arr[j - 1].consequence_barrier_id}`,
                                             color: graygrad
                                         }
@@ -433,14 +433,14 @@
                                 if (x.causeBarriers[x.causeBarriers.length - 1])
                                     return {
                                         key: `cause${x.cause_id}`,
-                                        text: `cause: ${x.description} \n \n if: ${x.initial_frequency}  \n \n cf: ${x.cf}`,
+                                        text: `Cause: ${x.description} \n \n IF: ${x.initial_frequency}  \n \n CF: ${x.cf}`,
                                         parent: x.causeBarriers[x.causeBarriers.length - 1] ? `causeBarrier${x.causeBarriers[x.causeBarriers.length - 1].cause_barrier_id}` : `event${lopa.event.event_id}`,
                                         color: bluegrad
                                     }
 
                                 return {
                                     key: `cause${x.cause_id}`,
-                                    text: `cause: ${x.description} \n \n  if: ${x.initial_frequency} \n \n  cf: ${x.cf}`,
+                                    text: `Cause: ${x.description} \n \n  IF: ${x.initial_frequency} \n \n  CF: ${x.cf}`,
                                     parent: `event${lopa.event.event_id}`,
                                     dir: "left",
                                     color: bluegrad
@@ -450,14 +450,14 @@
                                 if (x.consequenceBarriers[x.consequenceBarriers.length - 1])
                                     return {
                                         key: `consequence${x.consequence_id}`,
-                                        text: `consequence: ${x.description} \n \n  if: ${x.initial_frequency} \n \n  tf: ${x.target_frequency} \n \n  cf: ${x.cf}`,
+                                        text: `Consequence: ${x.description} \n \n  TF: ${x.target_frequency} \n \n  CF: ${x.cf}`,
                                         parent: `consequenceBarrier${x.consequenceBarriers[x.consequenceBarriers.length - 1].consequence_barrier_id}`,
                                         color: redgrad
                                     }
 
                                 return {
                                     key: `consequence: ${x.consequence_id}`,
-                                    text: `consequence: ${x.description}, if: ${x.initial_frequency} \n \n  tf: ${x.target_frequency} \n \n  cf: ${x.cf}`,
+                                    text: `Consequence: ${x.description} \n \n  TF: ${x.target_frequency} \n \n  CF: ${x.cf}`,
                                     parent: `event${lopa.event.event_id}`,
                                     dir: "right",
                                     color: redgrad
@@ -489,7 +489,7 @@
                             // ]);
 
                             myDiagram.model = new go.TreeModel([
-                                { key: `event${lopa.event.event_id}`, text: `event: ${lopa.event.description} \n \n  current_frequency: ${lopa.event.cf}`, color: eventColor },
+                                { key: `event${lopa.event.event_id}`, text: `Event: ${lopa.event.description} \n \n  CF: ${lopa.event.cf}`, color: eventColor },
                                 ...cob,
                                 ...cab,
                                 ...co,
