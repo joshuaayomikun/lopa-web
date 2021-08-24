@@ -11,7 +11,22 @@
 
 <body>
     <!-- This top nav is not part of the sample code -->
-    <div class="md:flex flex-col md:flex-row md:min-h-screen w-full max-w-screen-xl mx-auto">
+    <div class="d-flex mx-auto flex-column">
+        <nav class="navbar navbar-light bg-light shadow">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#" id="description">
+                    Bow Tie
+                </a>
+            </div>
+        </nav>
+        <br>
+        <div class="spinner-border mx-auto loader" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+
+        <div class="alert alert-danger mx-auto error-message" style="display: none;" role="alert">
+            Something went wrong, Ask the lopa admin to re-send the url 
+        </div>
         <!-- * * * * * * * * * * * * * -->
         <!-- Start of GoJS sample code -->
         <div class="p-4 w-full">
@@ -314,13 +329,21 @@
                             $(go.Shape));  // the link shape
 
                     const params = new URLSearchParams(window.location.search)
+                    
+                    const loader = document.querySelector(".loader")
                     if (params.has('eventId')) {
+
+                        loader.style = `
+                            display: block;
+                        `
                         const eventId = params.get('eventId')
                         const event = await fetchData1(eventId)
                         const cause = await fetchData2(eventId)
                         const consequence = await fetchData3(eventId)
                         var causeBarrier = [];
                         var consequenceBarrier = [];
+                        const dv = document.querySelector("#description")
+                        dv.textContent = "Bow Tie Diagram for " + event.description
                         Promise.all(
                             await cause.map(async function (value) {
                                 const causeBarriers = await fetchData4(value.cause_id)
@@ -340,19 +363,11 @@
                             const lopa = {
                                 event: event,
                                 causes: cause.map((val, index) => {
-                                    if (causeBarrier.length > 0) {
-                                        const cf = causeBarrier.reduce((previousValue, currentValue) => previousValue * +currentValue.pfd, 1) * val.initial_frequency
-                                        return {
-                                            ...val,
-                                            cf,
-                                            causeBarriers: causeBarrier.filter((filter, i) => +filter.cause_id === +val.cause_id)
-                                        }
-                                    } else {
-                                        return {
-                                            ...val,
-                                            cf: val.initial_frequency,
-                                            causeBarriers: causeBarrier.filter((filter, i) => +filter.cause_id === +val.cause_id)
-                                        }
+                                    const cf = causeBarrier.reduce((previousValue, currentValue) => previousValue * +currentValue.pfd, 1) * val.initial_frequency
+                                    return {
+                                        ...val,
+                                        cf,
+                                        causeBarriers: causeBarrier.filter((filter, i) => +filter.cause_id === +val.cause_id)
                                     }
                                 }),
                                 consequences: consequence.map((val, index) => {
@@ -377,7 +392,7 @@
                                     if (j === 0)
                                         return {
                                             key: `causeBarrier${y.cause_barrier_id}`,
-                                            text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                            text: `barrier: ${y.description} \n \n pfd: ${y.pfd}`,
                                             parent: `event${lopa.event.event_id}`,
                                             dir: 'left',
                                             color: graygrad
@@ -385,7 +400,7 @@
                                     else if (arr[j - 1] !== undefined)
                                         return {
                                             key: `causeBarrier${y.cause_barrier_id}`,
-                                            text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                            text: `barrier: ${y.description} \n \n  pfd: ${y.pfd}`,
                                             parent: `causeBarrier${arr[j - 1].cause_barrier_id}`,
                                             color: graygrad
                                         }
@@ -398,7 +413,7 @@
                                     if (j === 0)
                                         return {
                                             key: `consequenceBarrier${y.consequence_barrier_id}`,
-                                            text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                            text: `barrier: ${y.description} \n \n  pfd: ${y.pfd}`,
                                             parent: `event${lopa.event.event_id}`,
                                             dir: 'right',
                                             color: graygrad
@@ -406,7 +421,7 @@
                                     else if (arr[j - 1] !== undefined)
                                         return {
                                             key: `consequenceBarrier${y.consequence_barrier_id}`,
-                                            text: `barrier: ${y.description}, pfd: ${y.pfd}`,
+                                            text: `barrier: ${y.description} \n \n  pfd: ${y.pfd}`,
                                             parent: `consequenceBarrier${arr[j - 1].consequence_barrier_id}`,
                                             color: graygrad
                                         }
@@ -418,14 +433,14 @@
                                 if (x.causeBarriers[x.causeBarriers.length - 1])
                                     return {
                                         key: `cause${x.cause_id}`,
-                                        text: `cause: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
+                                        text: `cause: ${x.description} \n \n if: ${x.initial_frequency}  \n \n cf: ${x.cf}`,
                                         parent: x.causeBarriers[x.causeBarriers.length - 1] ? `causeBarrier${x.causeBarriers[x.causeBarriers.length - 1].cause_barrier_id}` : `event${lopa.event.event_id}`,
                                         color: bluegrad
                                     }
 
                                 return {
                                     key: `cause${x.cause_id}`,
-                                    text: `cause: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
+                                    text: `cause: ${x.description} \n \n  if: ${x.initial_frequency} \n \n  cf: ${x.cf}`,
                                     parent: `event${lopa.event.event_id}`,
                                     dir: "left",
                                     color: bluegrad
@@ -435,14 +450,14 @@
                                 if (x.consequenceBarriers[x.consequenceBarriers.length - 1])
                                     return {
                                         key: `consequence${x.consequence_id}`,
-                                        text: `consequence: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
+                                        text: `consequence: ${x.description} \n \n  if: ${x.initial_frequency} \n \n  tf: ${x.target_frequency} \n \n  cf: ${x.cf}`,
                                         parent: `consequenceBarrier${x.consequenceBarriers[x.consequenceBarriers.length - 1].consequence_barrier_id}`,
                                         color: redgrad
                                     }
 
                                 return {
                                     key: `consequence: ${x.consequence_id}`,
-                                    text: `consequence: ${x.description}, initial_frequency: ${x.initial_frequency}, target_frequency: ${x.target_frequency}, current_frequency: ${x.cf}`,
+                                    text: `consequence: ${x.description}, if: ${x.initial_frequency} \n \n  tf: ${x.target_frequency} \n \n  cf: ${x.cf}`,
                                     parent: `event${lopa.event.event_id}`,
                                     dir: "right",
                                     color: redgrad
@@ -474,7 +489,7 @@
                             // ]);
 
                             myDiagram.model = new go.TreeModel([
-                                { key: `event${lopa.event.event_id}`, text: `event: ${lopa.event.description}, current_frequency: ${lopa.event.cf}`, color: eventColor },
+                                { key: `event${lopa.event.event_id}`, text: `event: ${lopa.event.description} \n \n  current_frequency: ${lopa.event.cf}`, color: eventColor },
                                 ...cob,
                                 ...cab,
                                 ...co,
@@ -488,7 +503,19 @@
                             // })
                             // }, 5000)
 
+                            loader.style = `
+                        display: none;
+                    `
                         })
+                    } else {
+
+                        loader.style = `
+                        display: none;
+                    `
+                    const errorMsg = document.querySelector('.error-message')
+                    errorMsg.style = `
+                        display: block;
+                    `
                     }
                 }
                 window.addEventListener('load', () => {
@@ -501,6 +528,7 @@
                         window.sessionStorage.setItem("eventId", eventId)
                         window.location.href = "login.html"
                     }
+                    const loader = document.querySelector(".loader")
                 })
                 window.addEventListener('DOMContentLoaded', async () => {
                     init()
@@ -511,8 +539,7 @@
             </script>
 
             <div id="sample">
-                <div id="myDiagramDiv"
-                    style="background-color: white; border: solid 1px black; width: 100%; height: 500px">
+                <div id="myDiagramDiv" style="background-color: white;">
                 </div>
             </div>
         </div>
