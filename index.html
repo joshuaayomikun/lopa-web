@@ -352,7 +352,7 @@
                                 const causeBarriers = await fetchData4(value.cause_id)
                                 causeBarrier = [...causeBarrier, ...causeBarriers]
                             })
-                        Promise.allSettled(a,b
+                        Promise.allSettled(a,b,causeBarrier, consequenceBarrier
                         ).then(() => {
                             console.log({ event, cause, consequence, causeBarrier, consequenceBarrier })
 
