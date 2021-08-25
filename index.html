@@ -340,21 +340,22 @@
                         const event = await fetchData1(eventId)
                         const cause = await fetchData2(eventId)
                         const consequence = await fetchData3(eventId)
-                        var causeBarrier = [];
-                        var consequenceBarrier = [];
                         const dv = document.querySelector("#description")
                         dv.textContent = "Bow Tie Diagram for " + event.description
-                            const a = await consequence.map(async function (value) {
+                            const a = consequence.map(async function (value) {
                                 const consequenceBarriers = await fetchData5(value.consequence_id)
-                                consequenceBarrier = [...consequenceBarrier, ...consequenceBarriers]
+                                return consequenceBarriers
                             })
-                            const b = await cause.map(async function (value) {
+                            const b = cause.map(async function (value) {
                                 const causeBarriers = await fetchData4(value.cause_id)
-                                causeBarrier = [...causeBarrier, ...causeBarriers]
+                                return causeBarriers
                             })
-                        Promise.allSettled(a,b,causeBarrier, consequenceBarrier
-                        ).then(() => {
+                        Promise.all(b
+                        ).then((c) => {
+                            Promise.all(a).then((d)=>{
                             console.log({ event, cause, consequence, causeBarrier, consequenceBarrier })
+                            var causeBarrier = c.flat();
+                            var consequenceBarrier = d.flat();
 
                             // setTimeout(()=> {
 
@@ -506,6 +507,7 @@
                             loader.style = `
                         display: none;
                     `
+                        })
                         })
                     } else {
 
