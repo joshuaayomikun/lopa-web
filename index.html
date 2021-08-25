@@ -344,15 +344,15 @@
                         var consequenceBarrier = [];
                         const dv = document.querySelector("#description")
                         dv.textContent = "Bow Tie Diagram for " + event.description
-                        Promise.allSettled(
-                            await consequence.map(async function (value) {
+                            const a = await consequence.map(async function (value) {
                                 const consequenceBarriers = await fetchData5(value.consequence_id)
                                 consequenceBarrier = [...consequenceBarrier, ...consequenceBarriers]
-                            }),
-                            await cause.map(async function (value) {
+                            })
+                            const b = await cause.map(async function (value) {
                                 const causeBarriers = await fetchData4(value.cause_id)
                                 causeBarrier = [...causeBarrier, ...causeBarriers]
                             })
+                        Promise.allSettled(a,b
                         ).then(() => {
                             console.log({ event, cause, consequence, causeBarrier, consequenceBarrier })
 
@@ -363,7 +363,7 @@
                             const lopa = {
                                 event: event,
                                 causes: cause.map((val, index) => {
-                                    const cf = causeBarrier.reduce((previousValue, currentValue) => previousValue * +currentValue.pfd, 1) * val.initial_frequency
+                                    const cf = causeBarrier.filter(x => x.cause_id === val.cause_id).reduce((previousValue, currentValue) => previousValue * +currentValue.pfd, 1) * val.initial_frequency
                                     return {
                                         ...val,
                                         cf,
